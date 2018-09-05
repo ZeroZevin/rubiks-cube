@@ -1,19 +1,19 @@
-// let lastTimer = 0
-// let deltaTime = 0
-// let rotationSpeed = 500
-// let rotationQueue = []
-let rank = 3
-let cubeSize = 1
-let scene
-let camera
-let controls
-let renderer
-let cubeGroup
-let selectedArrow
-let selectedCude
-let isOnCube = false
+// var lastTimer = 0
+// var deltaTime = 0
+// var rotationSpeed = 500
+// var rotationQueue = []
+var rank = 3
+var cubeSize = 1
+var scene
+var camera
+var controls
+var renderer
+var cubeGroup
+var selectedArrow
+var selectedCude
+var isOnCube = false
 
-let faces = {
+var faces = {
   up: {
     name: 'yellow',
     color: '#FDCC09',
@@ -77,13 +77,13 @@ window.onresize = () => {
 cubeGroup = new THREE.Group()
 
 function getFaceTexture(color) {
-  let canvas = document.createElement('canvas')
-  let width = 256
-  let height = 256
+  var canvas = document.createElement('canvas')
+  var width = 256
+  var height = 256
   canvas.width = width
   canvas.height = height
 
-  let ctx = canvas.getContext('2d')
+  var ctx = canvas.getContext('2d')
 
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, width, height)
@@ -96,19 +96,19 @@ function getFaceTexture(color) {
   ctx.stroke()
   ctx.fill()
 
-  let texture = new THREE.Texture(canvas)
+  var texture = new THREE.Texture(canvas)
   texture.needsUpdate = true
 
   return texture
 }
 
 function initCube() {
-  let geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
+  var geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
 
-  let counter = 0
-  for (let z = 0; z < rank; z++) {
-    for (let y = 0; y < rank; y++) {
-      for (let x = 0; x < rank; x++) {
+  var counter = 0
+  for (var z = 0; z < rank; z++) {
+    for (var y = 0; y < rank; y++) {
+      for (var x = 0; x < rank; x++) {
         // 只生成有效方块
         if (
           x === 0 ||
@@ -118,7 +118,7 @@ function initCube() {
           y === rank - 1 ||
           z === rank - 1
         ) {
-          let materials = [
+          var materials = [
             new THREE.MeshBasicMaterial({
               map: x === rank - 1 ? faces.right.texture : faces.default.texture,
             }), // right
@@ -139,7 +139,7 @@ function initCube() {
             }), // back
           ]
 
-          let cube = new THREE.Mesh(geometry, materials)
+          var cube = new THREE.Mesh(geometry, materials)
           cube.position.set(
             x - rank / 2 + cubeSize / 2,
             y - rank / 2 + cubeSize / 2,
@@ -158,9 +158,9 @@ function filterPrecision(number) {
 }
 
 function getNormalMatrix(obj, face) {
-  let normalMatrix = new THREE.Matrix3().getNormalMatrix(obj.matrixWorld)
+  var normalMatrix = new THREE.Matrix3().getNormalMatrix(obj.matrixWorld)
 
-  let normal = face.normal
+  var normal = face.normal
     .clone()
     .applyMatrix3(normalMatrix)
     .normalize()
@@ -175,10 +175,10 @@ function getNormalMatrix(obj, face) {
 }
 
 function rotate(intersection, dire) {
-  let rotateGroup = new THREE.Group()
-  let normal = getNormalMatrix(intersection.object, intersection.face)
-  let _dire = ''
-  let deg = 0
+  var rotateGroup = new THREE.Group()
+  var normal = getNormalMatrix(intersection.object, intersection.face)
+  var _dire = ''
+  var deg = 0
 
   if (normal.x !== 0) {
     switch (dire) {
@@ -239,7 +239,7 @@ function rotate(intersection, dire) {
     }
   }
 
-  for (let i = cubeGroup.children.length - 1; i >= 0; i--) {
+  for (var i = cubeGroup.children.length - 1; i >= 0; i--) {
     if (
       Math.abs(
         cubeGroup.children[i].position[_dire.toLocaleLowerCase()] -
@@ -258,11 +258,11 @@ function rotate(intersection, dire) {
     cube.updateMatrixWorld(false)
   })
 
-  cubeGroup.add(...rotateGroup.children)
+  cubeGroup.add.apply(cubeGroup, rotateGroup.children)
 }
 
-let raycaster = new THREE.Raycaster()
-let mouse = new THREE.Vector2()
+var raycaster = new THREE.Raycaster()
+var mouse = new THREE.Vector2()
 
 function onMouseMove(event) {
   if (selectedArrow) {
@@ -279,15 +279,15 @@ function onMouseMove(event) {
   // update the picking ray with the camera and mouse position
   raycaster.setFromCamera(mouse, camera)
 
-  let cubeIntersects = raycaster.intersectObjects(cubeGroup.children)
+  var cubeIntersects = raycaster.intersectObjects(cubeGroup.children)
 
   if (cubeIntersects.length) {
     isOnCube = true
-    let cubeFaceNormal = getNormalMatrix(
+    var cubeFaceNormal = getNormalMatrix(
       cubeIntersects[0].object,
       cubeIntersects[0].face,
     )
-    let ctrlGroupPosition = cubeRotateCtrlGroup.position
+    var ctrlGroupPosition = cubeRotateCtrlGroup.position
 
     cubeRotateCtrlGroup.position.copy(cubeIntersects[0].object.position)
 
@@ -321,7 +321,7 @@ function onMouseMove(event) {
 
     // console.log(selectedCude.face)
     // calculate objects intersecting the picking ray
-    let ctrlIntersects = raycaster.intersectObjects(
+    var ctrlIntersects = raycaster.intersectObjects(
       cubeRotateCtrlGroup.children,
     )
 
@@ -344,13 +344,13 @@ function onMouseDown(event) {
   // update the picking ray with the camera and mouse position
   raycaster.setFromCamera(mouse, camera)
 
-  let cubeIntersects = raycaster.intersectObjects(cubeGroup.children)
+  var cubeIntersects = raycaster.intersectObjects(cubeGroup.children)
 
   if (cubeIntersects.length) {
     selectedCude = cubeIntersects[0]
   }
 
-  let ctrlIntersects = raycaster.intersectObjects(cubeRotateCtrlGroup.children)
+  var ctrlIntersects = raycaster.intersectObjects(cubeRotateCtrlGroup.children)
 
   if (ctrlIntersects.length && selectedCude) {
     rotate(selectedCude, ctrlIntersects[0].object.name)
@@ -387,7 +387,7 @@ function upadte(time) {
   // }
 
   // if (rotationQueue.length) {
-  //   let result = rotationQueue[0]()
+  //   var result = rotationQueue[0]()
   //   if (typeof result === 'function') {
   //     rotationQueue[0] = result
   //     result = rotationQueue[0]()
@@ -403,7 +403,7 @@ function upadte(time) {
   renderer.render(scene, camera)
 }
 
-let cubeRotateCtrlGroup = new THREE.Group()
+var cubeRotateCtrlGroup = new THREE.Group()
 cubeRotateCtrlGroup.renderOrder = 5
 
 function addRotateCtrlShape(shape, name, x, y, z, rx, ry, rz) {
@@ -431,7 +431,7 @@ function addRotateCtrlShape(shape, name, x, y, z, rx, ry, rz) {
 }
 
 function genTriangleShape() {
-  let triangleShape = new THREE.Shape()
+  var triangleShape = new THREE.Shape()
   triangleShape.moveTo(-0.25, 0.125)
   triangleShape.lineTo(0.25, 0.125)
   triangleShape.lineTo(0, -0.125)
@@ -444,10 +444,10 @@ function start() {
   initCube()
   scene.add(cubeGroup)
 
-  // let axes = new THREE.AxesHelper(500)
+  // var axes = new THREE.AxesHelper(500)
   // scene.add(axes)
 
-  let triangleShape = genTriangleShape()
+  var triangleShape = genTriangleShape()
   addRotateCtrlShape(triangleShape, 'down', 0, -0.3, 0, 0, 0, 0)
   addRotateCtrlShape(triangleShape, 'up', 0, 0.3, 0, 0, 0, 180)
   addRotateCtrlShape(triangleShape, 'right', 0.3, 0, 0, 0, 0, 90)
