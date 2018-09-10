@@ -12,6 +12,8 @@ var cubeGroup
 var selectedArrow
 var selectedCude
 var isOnCube = false
+var isRotate = false
+var rotateQueue = []
 
 var faces = {
   up: {
@@ -174,91 +176,115 @@ function getNormalMatrix(obj, face) {
   return normal
 }
 
-function rotate(intersection, dire) {
+function rotate(intersection, dire, speed) {
   var rotateGroup = new THREE.Group()
+  
   var normal = getNormalMatrix(intersection.object, intersection.face)
   var _dire = ''
   var deg = 0
-
+  
   if (normal.x !== 0) {
     switch (dire) {
       case 'up':
-        _dire = 'Z'
-        deg = normal.x * 90
-        break
+      _dire = 'Z'
+      deg = normal.x * 90
+      break
       case 'down':
-        _dire = 'Z'
-        deg = normal.x * -90
-        break
+      _dire = 'Z'
+      deg = normal.x * -90
+      break
       case 'left':
-        _dire = 'Y'
-        deg = normal.x * -90
-        break
+      _dire = 'Y'
+      deg = normal.x * -90
+      break
       case 'right':
-        _dire = 'Y'
-        deg = normal.x * 90
-        break
+      _dire = 'Y'
+      deg = normal.x * 90
+      break
     }
   } else if (normal.y !== 0) {
     switch (dire) {
       case 'up':
-        _dire = 'X'
-        deg = normal.y * 90
-        break
+      _dire = 'X'
+      deg = normal.y * 90
+      break
       case 'down':
-        _dire = 'X'
-        deg = normal.y * -90
-        break
+      _dire = 'X'
+      deg = normal.y * -90
+      break
       case 'left':
-        _dire = 'Z'
-        deg = normal.y * 90
-        break
+      _dire = 'Z'
+      deg = normal.y * 90
+      break
       case 'right':
-        _dire = 'Z'
-        deg = normal.y * -90
-        break
+      _dire = 'Z'
+      deg = normal.y * -90
+      break
     }
   } else if (normal.z !== 0) {
     switch (dire) {
       case 'up':
-        _dire = 'X'
-        deg = normal.z * -90
-        break
+      _dire = 'X'
+      deg = normal.z * -90
+      break
       case 'down':
-        _dire = 'X'
-        deg = normal.z * 90
-        break
+      _dire = 'X'
+      deg = normal.z * 90
+      break
       case 'left':
-        _dire = 'Y'
-        deg = normal.z * -90
-        break
+      _dire = 'Y'
+      deg = normal.z * -90
+      break
       case 'right':
-        _dire = 'Y'
-        deg = normal.z * 90
-        break
+      _dire = 'Y'
+      deg = normal.z * 90
+      break
     }
   }
-
+  
   for (var i = cubeGroup.children.length - 1; i >= 0; i--) {
     if (
       Math.abs(
         cubeGroup.children[i].position[_dire.toLocaleLowerCase()] -
-          intersection.object.position[_dire.toLocaleLowerCase()],
+        intersection.object.position[_dire.toLocaleLowerCase()],
       ) <= 0.01
     ) {
       rotateGroup.add(cubeGroup.children[i])
     }
   }
 
-  rotateGroup['rotate' + _dire](THREE.Math.degToRad(deg))
-  rotateGroup.updateMatrixWorld(false)
+  cubeGroup.add(rotateGroup)
+  
+  let state = {
+    isComplete: false,
+  }
 
-  rotateGroup.children.forEach(cube => {
-    cube.applyMatrix(rotateGroup.matrixWorld)
-    cube.updateMatrixWorld(false)
-  })
+  state.run = () => {
+    isRotate = true
 
-  cubeGroup.add.apply(cubeGroup, rotateGroup.children)
+    createjs.Tween.get(rotateGroup.rotation)
+      .to(
+        { [_dire.toLocaleLowerCase()]: THREE.Math.degToRad(deg) },
+        speed ? speed : 200,
+      )
+      .call(() => {
+        rotateGroup.updateMatrixWorld(false)
+
+        rotateGroup.children.forEach(cube => {
+          cube.applyMatrix(rotateGroup.matrixWorld)
+          cube.updateMatrixWorld(false)
+        })
+
+        cubeGroup.add.apply(cubeGroup, rotateGroup.children)
+  
+        cubeGroup.remove(rotateGroup)
+
+        isRotate = false
+        state.isComplete = true
+      })
+  }
+
+  return state
 }
 
 var raycaster = new THREE.Raycaster()
@@ -338,6 +364,8 @@ window.addEventListener('mousemove', onMouseMove, false)
 function onMouseDown(event) {
   selectedCude = null
 
+  if (isRotate) return
+
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
 
@@ -353,7 +381,7 @@ function onMouseDown(event) {
   var ctrlIntersects = raycaster.intersectObjects(cubeRotateCtrlGroup.children)
 
   if (ctrlIntersects.length && selectedCude) {
-    rotate(selectedCude, ctrlIntersects[0].object.name)
+    rotateQueue.push(rotate(selectedCude, ctrlIntersects[0].object.name, 200)) 
   }
 }
 
@@ -367,6 +395,7 @@ function rotateCtrlShow() {
 
 function rotateCtrlHidden() {
   cubeRotateCtrlGroup.children.forEach(item => {
+    renderer.domElement.style.cursor = 'default'
     item.material.opacity = Math.max(0, item.material.opacity - 0.1)
   })
 }
@@ -374,7 +403,18 @@ function rotateCtrlHidden() {
 function upadte(time) {
   // deltaTime = time - lastTimer
 
-  if (isOnCube) {
+  if (rotateQueue.length) {
+    if (rotateQueue[0].isComplete) {
+      rotateQueue.shift()
+      if (rotateQueue.length) {
+        rotateQueue[0].run()
+      }
+    } else if(!isRotate) {
+      rotateQueue[0].run()
+    }
+  }
+
+  if (isOnCube && !isRotate) {
     rotateCtrlShow()
   } else {
     rotateCtrlHidden()
@@ -382,22 +422,7 @@ function upadte(time) {
 
   requestAnimationFrame(upadte)
 
-  // if (autoRotate) {
-  //   group.rotateY(THREE.Math.degToRad(1))
-  // }
-
-  // if (rotationQueue.length) {
-  //   var result = rotationQueue[0]()
-  //   if (typeof result === 'function') {
-  //     rotationQueue[0] = result
-  //     result = rotationQueue[0]()
-  //   }
-  //   if (result) {
-  //     rotationQueue.shift()
-  //   }
-  // }
-
-  // controls.update()
+  controls.update()
 
   // lastTimer = time
   renderer.render(scene, camera)
